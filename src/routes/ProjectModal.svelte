@@ -104,12 +104,51 @@
 				if (reqs['codeigniter4/framework']) addD('CodeIgniter 4');
 			}
 
+			// 4. Fetch README (only if description is empty)
+			if (!formData.progressNotes.trim()) {
+				const readmeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, {
+					headers: { ...headers, Accept: 'application/vnd.github.v3.raw' }
+				});
+				if (readmeRes.ok) {
+					const readmeText = await readmeRes.text();
+					// Clean up markdown to get a short plain text summary
+					let cleanText = readmeText
+						.replace(/^#.*$/gm, '') // Remove headers
+						.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // Keep link text, remove URL
+						.replace(/!\[[^\]]*\]\([^)]+\)/g, '') // Remove images entirely
+						.replace(/<[^>]*>?/gm, '') // Remove HTML tags
+						.replace(/```[\s\S]*?```/g, '') // Remove code blocks
+						.replace(/\n\s*\n/g, '\n') // Remove multiple empty lines
+						.trim();
+
+					if (cleanText) {
+						formData.progressNotes =
+							cleanText.substring(0, 300) + (cleanText.length > 300 ? '...' : '');
+					}
+				}
+			}
+
 			formData.technologies = detected;
 		} catch (e) {
 			console.error('Failed to auto-detect:', e);
 			alert('Failed to auto-detect. The repo might be private or API limit reached.');
 		} finally {
 			isDetecting = false;
+		}
+	};
+
+	const handleRepoInput = () => {
+		if (formData.repo && formData.repo.includes('github.com')) {
+			const match = formData.repo.match(/github\.com\/([^/]+)\/([^/]+)/);
+			if (match) {
+				const repoName = match[2].replace('.git', '');
+				// Auto-fill project name if it's empty
+				if (!formData.name) {
+					formData.name = repoName.charAt(0).toUpperCase() + repoName.slice(1).replace(/-/g, ' ');
+				}
+				// Automatically trigger auto-detect
+				detectTechStack();
+			}
 		}
 	};
 
@@ -240,6 +279,7 @@
 							type="url"
 							id="repo"
 							bind:value={formData.repo}
+							onchange={handleRepoInput}
 							placeholder="e.g. https://github.com/username/repo"
 							class="flex-1 px-4 py-2.5 bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
 						/>
@@ -270,7 +310,10 @@
 
 				<!-- Tech Stack Field -->
 				<div>
-					<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+					<label
+						for="new-tech"
+						class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2"
+					>
 						Tech Stack
 					</label>
 					<div class="flex flex-wrap gap-2 mb-2">
@@ -283,6 +326,7 @@
 									type="button"
 									onclick={() => removeTech(tech)}
 									class="text-gray-400 hover:text-red-500 transition-colors ml-1 focus:outline-none"
+									aria-label={`Remove ${tech}`}
 								>
 									<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
 										><path
@@ -299,6 +343,7 @@
 					<div class="flex gap-2">
 						<input
 							type="text"
+							id="new-tech"
 							bind:value={newTechText}
 							placeholder="Add technology (e.g. Svelte, Laravel)..."
 							onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addTech())}

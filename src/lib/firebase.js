@@ -1,11 +1,5 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
-import {
-	getAuth,
-	GoogleAuthProvider,
-	GithubAuthProvider,
-	signInWithPopup,
-	signOut
-} from 'firebase/auth';
+import { getAuth, GithubAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
 import {
 	getFirestore,
 	collection,
@@ -36,16 +30,18 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-const googleProvider = new GoogleAuthProvider();
 const githubProvider = new GithubAuthProvider();
 // Request access to private repos
 githubProvider.addScope('repo');
+// Force consent prompt to ensure GitHub asks for the repo scope
+githubProvider.setCustomParameters({
+	prompt: 'consent'
+});
 
 export {
 	app,
 	auth,
 	db,
-	googleProvider,
 	githubProvider,
 	GithubAuthProvider,
 	signInWithPopup,

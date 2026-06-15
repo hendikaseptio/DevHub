@@ -33,6 +33,7 @@
 
 	let searchQuery = $state('');
 	let filterStatus = $state('All');
+	let filterBugs = $state(false);
 	let viewMode = $state('card');
 
 	let filteredProjects = $derived(
@@ -41,7 +42,8 @@
 				p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
 				(p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()));
 			const matchesStatus = filterStatus === 'All' || p.status === filterStatus;
-			return matchesSearch && matchesStatus;
+			const matchesBugs = filterBugs ? !!p.bugNotes && p.bugNotes.trim().length > 0 : true;
+			return matchesSearch && matchesStatus && matchesBugs;
 		})
 	);
 
@@ -406,6 +408,25 @@
 						>
 					</div>
 				</div>
+
+				<!-- Bug Filter Toggle -->
+				<button
+					onclick={() => (filterBugs = !filterBugs)}
+					class="flex items-center gap-2 px-4 py-3 rounded-xl border transition-colors whitespace-nowrap {filterBugs
+						? 'bg-rose-100/80 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800'
+						: 'bg-white/30 dark:bg-gray-800/30 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'}"
+					title="Show projects with bugs"
+				>
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+						><path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+						></path></svg
+					>
+					<span class="font-bold text-sm hidden sm:inline">Has Bugs</span>
+				</button>
 
 				<!-- View Toggle -->
 				<div
