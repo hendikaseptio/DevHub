@@ -48,8 +48,21 @@
 		isDetecting = true;
 
 		try {
+			const githubToken = localStorage.getItem('githubToken');
+			/** @type {any} */
+			const headers = githubToken ? { Authorization: `Bearer ${githubToken}` } : {};
+
 			// 1. Fetch Languages
-			const langRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`);
+			const langRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`, {
+				headers
+			});
+			if (langRes.status === 404) {
+				alert(
+					'Repo not found or is private. If it is private, please sign out and sign in with GitHub to allow DevHub to read your private repos.'
+				);
+				return;
+			}
+
 			if (langRes.ok) {
 				const langs = await langRes.json();
 				Object.keys(langs).forEach((l) => {
@@ -59,7 +72,8 @@
 
 			// 2. Fetch package.json
 			const pkgRes = await fetch(
-				`https://raw.githubusercontent.com/${owner}/${repo}/HEAD/package.json`
+				`https://api.github.com/repos/${owner}/${repo}/contents/package.json`,
+				{ headers: { ...headers, Accept: 'application/vnd.github.v3.raw' } }
 			);
 			if (pkgRes.ok) {
 				const pkg = await pkgRes.json();
@@ -79,7 +93,8 @@
 
 			// 3. Fetch composer.json
 			const compRes = await fetch(
-				`https://raw.githubusercontent.com/${owner}/${repo}/HEAD/composer.json`
+				`https://api.github.com/repos/${owner}/${repo}/contents/composer.json`,
+				{ headers: { ...headers, Accept: 'application/vnd.github.v3.raw' } }
 			);
 			if (compRes.ok) {
 				const comp = await compRes.json();

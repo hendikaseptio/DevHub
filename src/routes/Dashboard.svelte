@@ -86,6 +86,7 @@
 	const handleSignOut = async () => {
 		try {
 			await signOut(auth);
+			localStorage.removeItem('githubToken');
 		} catch (error) {
 			console.error('Error signing out:', error);
 		}
