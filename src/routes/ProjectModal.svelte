@@ -6,12 +6,34 @@
 		name: project?.name || '',
 		category: project?.category || '',
 		repo: project?.repo || '',
+		liveUrl: project?.liveUrl || '',
 		progressNotes: project?.progressNotes || '',
 		bugNotes: project?.bugNotes || '',
-		status: project?.status || 'In Development'
+		status: project?.status || 'In Development',
+		tasks: project?.tasks ? [...project.tasks] : []
 	});
 
+	let newTaskText = $state('');
 	let isSubmitting = $state(false);
+
+	const addTask = () => {
+		if (newTaskText.trim()) {
+			formData.tasks = [
+				...formData.tasks,
+				{
+					id: Date.now().toString(),
+					text: newTaskText.trim(),
+					completed: false
+				}
+			];
+			newTaskText = '';
+		}
+	};
+
+	/** @param {string} id */
+	const removeTask = (id) => {
+		formData.tasks = formData.tasks.filter((/** @type {any} */ t) => t.id !== id);
+	};
 
 	const handleSubmit = async () => {
 		if (!formData.name.trim()) {
@@ -125,6 +147,20 @@
 					/>
 				</div>
 
+				<!-- Live URL Field -->
+				<div>
+					<label for="liveUrl" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1"
+						>Live URL (Production)</label
+					>
+					<input
+						type="url"
+						id="liveUrl"
+						bind:value={formData.liveUrl}
+						placeholder="e.g. https://my-awesome-app.com"
+						class="w-full px-4 py-2.5 bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
+					/>
+				</div>
+
 				<!-- Status Field -->
 				<div>
 					<label for="status" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1"
@@ -154,12 +190,70 @@
 					</div>
 				</div>
 
-				<!-- Progress Notes -->
+				<!-- Tasks (Checklist) -->
+				<div>
+					<span class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2"
+						>To-Do List</span
+					>
+					<div class="space-y-3 mb-3">
+						{#each formData.tasks as task (task.id)}
+							<div
+								class="flex items-center gap-3 bg-white/50 dark:bg-gray-800/50 p-3 rounded-xl border border-gray-200 dark:border-gray-700"
+							>
+								<input
+									type="checkbox"
+									bind:checked={task.completed}
+									class="w-5 h-5 text-accent-600 rounded border-gray-300 focus:ring-accent-500 dark:border-gray-600 dark:bg-gray-700"
+								/>
+								<input
+									type="text"
+									bind:value={task.text}
+									class="flex-1 bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white p-0 {task.completed
+										? 'line-through text-gray-400 dark:text-gray-500'
+										: ''}"
+								/>
+								<button
+									type="button"
+									onclick={() => removeTask(task.id)}
+									aria-label="Remove task"
+									class="text-red-500 hover:text-red-700 p-1"
+								>
+									<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+										></path></svg
+									>
+								</button>
+							</div>
+						{/each}
+					</div>
+					<div class="flex gap-2">
+						<input
+							type="text"
+							bind:value={newTaskText}
+							placeholder="Add a new task..."
+							onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addTask())}
+							class="flex-1 px-4 py-2.5 bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:text-white placeholder-gray-400 outline-none transition-all"
+						/>
+						<button
+							type="button"
+							onclick={addTask}
+							class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 font-bold transition-all"
+						>
+							Add
+						</button>
+					</div>
+				</div>
+
+				<!-- Description (formerly Progress Notes) -->
 				<div>
 					<label
 						for="progressNotes"
 						class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1"
-						>Progress Notes</label
+						>Project Description</label
 					>
 					<textarea
 						id="progressNotes"

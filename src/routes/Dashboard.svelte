@@ -141,6 +141,21 @@
 			}
 		}
 	};
+
+	/**
+	 * @param {any} project
+	 * @param {string} taskId
+	 */
+	const toggleTask = async (project, taskId) => {
+		const newTasks = (project.tasks || []).map((/** @type {any} */ t) =>
+			t.id === taskId ? { ...t, completed: !t.completed } : t
+		);
+		try {
+			await updateDoc(doc(db, 'projects', project.id), { tasks: newTasks });
+		} catch (e) {
+			console.error('Error updating task:', e);
+		}
+	};
 </script>
 
 <div class="min-h-screen flex flex-col relative z-10">
@@ -274,6 +289,40 @@
 				New Project
 			</button>
 		</div>
+
+		<!-- Statistics -->
+		{#if projects.length > 0}
+			<div class="grid grid-cols-3 gap-4 mb-8">
+				<div
+					class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center border-b-4 border-gray-300 dark:border-gray-600"
+				>
+					<span class="text-3xl font-extrabold text-gray-900 dark:text-white"
+						>{projects.length}</span
+					>
+					<span class="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Total</span>
+				</div>
+				<div
+					class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center border-b-4 border-accent-500"
+				>
+					<span class="text-3xl font-extrabold text-accent-600 dark:text-accent-400"
+						>{projects.filter((p) => p.status === 'In Development').length}</span
+					>
+					<span class="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1"
+						>In Progress</span
+					>
+				</div>
+				<div
+					class="glass-panel p-4 rounded-2xl flex flex-col items-center justify-center text-center border-b-4 border-emerald-500"
+				>
+					<span class="text-3xl font-extrabold text-emerald-500"
+						>{projects.filter((p) => p.status === 'Completed').length}</span
+					>
+					<span class="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1"
+						>Completed</span
+					>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Search & Filter Bar -->
 		{#if projects.length > 0 || searchQuery !== '' || filterStatus !== 'All'}
@@ -489,82 +538,152 @@
 									{project.status || 'In Development'}
 								</span>
 							</div>
-							{#if project.repo}
-								<!-- eslint-disable svelte/no-navigation-without-resolve -->
-								<a
-									href={project.repo.startsWith('http') ? project.repo : `https://${project.repo}`}
-									target="_blank"
-									rel="noopener noreferrer"
-									class="text-sm text-gray-500 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400 flex items-center gap-1.5 transition-colors w-fit bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50"
-								>
-									<svg
-										class="w-4 h-4"
-										fill="currentColor"
-										viewBox="0 0 24 24"
-										xmlns="http://www.w3.org/2000/svg"
-										><path
-											fill-rule="evenodd"
-											clip-rule="evenodd"
-											d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"
-										></path></svg
+							<div class="flex flex-col gap-1.5 mt-1">
+								{#if project.repo}
+									<!-- eslint-disable svelte/no-navigation-without-resolve -->
+									<a
+										href={project.repo.startsWith('http')
+											? project.repo
+											: `https://${project.repo}`}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="text-sm text-gray-500 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400 flex items-center gap-1.5 transition-colors w-fit bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50"
 									>
-									<span class="line-clamp-1">{project.repo.replace(/^https?:\/\//, '')}</span>
-								</a>
-								<!-- eslint-enable svelte/no-navigation-without-resolve -->
-							{:else}
-								<span
-									class="text-sm text-gray-400 dark:text-gray-500 italic flex items-center gap-1.5 px-2 py-1"
-								>
-									<svg
-										class="w-4 h-4"
-										fill="none"
-										stroke="currentColor"
-										viewBox="0 0 24 24"
-										xmlns="http://www.w3.org/2000/svg"
-										><path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-										></path></svg
+										<svg
+											class="w-4 h-4 flex-shrink-0"
+											fill="currentColor"
+											viewBox="0 0 24 24"
+											xmlns="http://www.w3.org/2000/svg"
+											><path
+												fill-rule="evenodd"
+												clip-rule="evenodd"
+												d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"
+											></path></svg
+										>
+										<span class="line-clamp-1">{project.repo.replace(/^https?:\/\//, '')}</span>
+									</a>
+									<!-- eslint-enable svelte/no-navigation-without-resolve -->
+								{/if}
+								{#if project.liveUrl}
+									<!-- eslint-disable svelte/no-navigation-without-resolve -->
+									<a
+										href={project.liveUrl.startsWith('http')
+											? project.liveUrl
+											: `https://${project.liveUrl}`}
+										target="_blank"
+										rel="noopener noreferrer"
+										class="text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 transition-colors w-fit bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50"
 									>
-									No repository link
-								</span>
-							{/if}
+										<svg
+											class="w-4 h-4 flex-shrink-0"
+											fill="none"
+											stroke="currentColor"
+											viewBox="0 0 24 24"
+											><path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+											></path></svg
+										>
+										<span class="line-clamp-1">{project.liveUrl.replace(/^https?:\/\//, '')}</span>
+									</a>
+									<!-- eslint-enable svelte/no-navigation-without-resolve -->
+								{/if}
+								{#if !project.repo && !project.liveUrl}
+									<span
+										class="text-sm text-gray-400 dark:text-gray-500 italic flex items-center gap-1.5 px-2 py-1"
+									>
+										<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+											><path
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												stroke-width="2"
+												d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+											></path></svg
+										>
+										No links provided
+									</span>
+								{/if}
+							</div>
 						</div>
 
 						<!-- Card Body -->
 						<div
 							class="p-6 flex-1 flex flex-col gap-5 text-sm bg-gray-50/30 dark:bg-gray-800/20 relative z-10"
 						>
-							<div>
-								<div class="flex items-center gap-2 mb-2">
-									<div class="w-1.5 h-1.5 rounded-full bg-accent-400"></div>
-									<span
-										class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
-										>Progress Notes</span
-									>
+							{#if project.tasks && project.tasks.length > 0}
+								<div>
+									<div class="flex items-center gap-2 mb-2">
+										<div class="w-1.5 h-1.5 rounded-full bg-accent-500"></div>
+										<span
+											class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+											>To-Do List</span
+										>
+									</div>
+									<div class="flex flex-col gap-2">
+										{#each project.tasks as task (task.id)}
+											<label class="flex items-start gap-2.5 group cursor-pointer">
+												<input
+													type="checkbox"
+													checked={task.completed}
+													onchange={() => toggleTask(project, task.id)}
+													class="mt-0.5 w-4 h-4 text-accent-600 rounded border-gray-300 focus:ring-accent-500 dark:border-gray-600 dark:bg-gray-700 cursor-pointer transition-all"
+												/>
+												<span
+													class="text-gray-700 dark:text-gray-300 text-sm {task.completed
+														? 'line-through text-gray-400 dark:text-gray-500'
+														: 'group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors'}"
+												>
+													{task.text}
+												</span>
+											</label>
+										{/each}
+									</div>
 								</div>
-								<p
-									class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap line-clamp-3 leading-relaxed"
-								>
-									{project.progressNotes || 'No progress notes yet.'}
-								</p>
-							</div>
-							<div>
-								<div class="flex items-center gap-2 mb-2">
-									<div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
-									<span
-										class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
-										>Bug Notes</span
+							{/if}
+
+							{#if project.progressNotes}
+								<div>
+									<div class="flex items-center gap-2 mb-2">
+										<div class="w-1.5 h-1.5 rounded-full bg-accent-300"></div>
+										<span
+											class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+											>Description</span
+										>
+									</div>
+									<p
+										class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap line-clamp-3 leading-relaxed"
 									>
+										{project.progressNotes}
+									</p>
 								</div>
-								<p
-									class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap line-clamp-3 leading-relaxed"
+							{/if}
+
+							{#if project.bugNotes}
+								<div>
+									<div class="flex items-center gap-2 mb-2">
+										<div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+										<span
+											class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+											>Bug Notes</span
+										>
+									</div>
+									<p
+										class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap line-clamp-3 leading-relaxed"
+									>
+										{project.bugNotes}
+									</p>
+								</div>
+							{/if}
+
+							{#if !project.progressNotes && !project.bugNotes && (!project.tasks || project.tasks.length === 0)}
+								<div
+									class="flex items-center justify-center h-full opacity-50 text-gray-500 italic"
 								>
-									{project.bugNotes || 'No bugs reported.'}
-								</p>
-							</div>
+									No details provided.
+								</div>
+							{/if}
 						</div>
 
 						<!-- Card Footer -->
