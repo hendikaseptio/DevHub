@@ -11,34 +11,49 @@
 		deleteDoc,
 		query,
 		where,
+		orderBy,
 		onSnapshot
 	} from '$lib/firebase';
 	import { onMount, onDestroy } from 'svelte';
 	import ProjectModal from './ProjectModal.svelte';
 
+	/** @type {any[]} */
 	let projects = $state([]);
 	let loading = $state(true);
+	/** @type {any} */
 	let unsubscribe;
 
 	let isModalOpen = $state(false);
+	/** @type {any} */
 	let currentProject = $state(null);
+	let indexErrorLink = $state(null);
 
 	onMount(() => {
 		if ($user) {
-			const q = query(collection(db, 'projects'), where('userId', '==', $user.uid));
+			const q = query(
+				collection(db, 'projects'),
+				where('userId', '==', $user?.uid),
+				orderBy('createdAt', 'desc')
+			);
 			unsubscribe = onSnapshot(
 				q,
 				(querySnapshot) => {
+					/** @type {any[]} */
 					const projData = [];
 					querySnapshot.forEach((doc) => {
 						projData.push({ id: doc.id, ...doc.data() });
 					});
-					// sort by createdAt desc if it exists
-					projects = projData.sort((a, b) => b.createdAt - a.createdAt);
+					projects = projData;
 					loading = false;
 				},
 				(error) => {
 					console.error('Error fetching projects:', error);
+					if (error.message.includes('requires an index')) {
+						const match = error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/);
+						if (match) {
+							indexErrorLink = match[0];
+						}
+					}
 					loading = false;
 				}
 			);
@@ -62,6 +77,7 @@
 		isModalOpen = true;
 	};
 
+	/** @param {any} project */
 	const openEditProjectModal = (project) => {
 		currentProject = { ...project };
 		isModalOpen = true;
@@ -72,6 +88,7 @@
 		currentProject = null;
 	};
 
+	/** @param {any} projectData */
 	const saveProject = async (projectData) => {
 		try {
 			if (currentProject && currentProject.id) {
@@ -85,7 +102,7 @@
 				// Create
 				await addDoc(collection(db, 'projects'), {
 					...projectData,
-					userId: $user.uid,
+					userId: $user?.uid,
 					createdAt: Date.now(),
 					updatedAt: Date.now()
 				});
@@ -97,6 +114,7 @@
 		}
 	};
 
+	/** @param {string} id */
 	const deleteProject = async (id) => {
 		if (confirm('Are you sure you want to delete this project?')) {
 			try {
@@ -141,12 +159,12 @@
 				<div class="flex items-center gap-4">
 					<div class="hidden sm:flex items-center gap-2">
 						<img
-							src={$user.photoURL}
-							alt={$user.displayName}
+							src={$user?.photoURL}
+							alt={$user?.displayName}
 							class="w-8 h-8 rounded-full border border-gray-200"
 							referrerpolicy="no-referrer"
 						/>
-						<span class="text-sm font-medium text-gray-700">{$user.displayName}</span>
+						<span class="text-sm font-medium text-gray-700">{$user?.displayName}</span>
 					</div>
 					<button
 						onclick={handleSignOut}
@@ -188,6 +206,41 @@
 				<div
 					class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"
 				></div>
+			</div>
+		{:else if indexErrorLink}
+			<div
+				class="bg-red-50 rounded-2xl border border-red-100 p-8 text-center max-w-2xl mx-auto mt-10"
+			>
+				<div
+					class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"
+				>
+					<svg
+						class="w-8 h-8 text-red-500"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+						xmlns="http://www.w3.org/2000/svg"
+						><path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+						></path></svg
+					>
+				</div>
+				<h3 class="text-xl font-bold text-red-800 mb-2">Firestore Index Required</h3>
+				<p class="text-red-600 mb-6">
+					You need to create a composite index in Firestore for the projects to load and sort
+					properly.
+				</p>
+				<a
+					href={indexErrorLink}
+					target="_blank"
+					rel="noopener noreferrer"
+					class="inline-block bg-red-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+				>
+					Click here to build the Index automatically
+				</a>
 			</div>
 		{:else if projects.length === 0}
 			<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
@@ -238,7 +291,7 @@
 								</span>
 							</div>
 							{#if project.repo}
-								<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+								<!-- eslint-disable svelte/no-navigation-without-resolve -->
 								<a
 									href={project.repo.startsWith('http') ? project.repo : `https://${project.repo}`}
 									target="_blank"
@@ -258,6 +311,7 @@
 									>
 									<span class="line-clamp-1">{project.repo.replace(/^https?:\/\//, '')}</span>
 								</a>
+								<!-- eslint-enable svelte/no-navigation-without-resolve -->
 							{:else}
 								<span class="text-sm text-gray-400 italic flex items-center gap-1.5">
 									<svg

@@ -1,6 +1,7 @@
 <script>
-	let { project = null, onClose, onSave } = $props();
+	let { project, onClose, onSave } = $props();
 
+	// svelte-ignore state_referenced_locally
 	let formData = $state({
 		name: project?.name || '',
 		repo: project?.repo || '',
@@ -36,6 +37,7 @@
 			</h2>
 			<button
 				onclick={onClose}
+				aria-label="Close modal"
 				class="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
 			>
 				<svg
@@ -56,7 +58,13 @@
 
 		<!-- Form Body -->
 		<div class="p-6 overflow-y-auto">
-			<form on:submit|preventDefault={handleSubmit} class="space-y-5">
+			<form
+				onsubmit={(e) => {
+					e.preventDefault();
+					handleSubmit();
+				}}
+				class="space-y-5"
+			>
 				<!-- Name Field -->
 				<div>
 					<label for="name" class="block text-sm font-medium text-gray-700 mb-1"
