@@ -28,6 +28,7 @@
 ## 🚀 Quick Start
 
 ### 1. Clone & Install
+
 ```bash
 git clone https://github.com/hendikaseptio/devhub.git
 cd devhub
@@ -35,39 +36,49 @@ npm install
 ```
 
 ### 2. Firebase Setup
+
 1. Create a project in [Firebase Console](https://console.firebase.google.com/).
 2. Enable **Firestore Database** and add the Security Rules found in `firestore.rules`.
 3. Enable **Authentication** (Sign-in providers: **GitHub**).
 4. Get your Web App Config from Project Settings.
 
 ### 3. Environment Variables
+
 Create a `.env` file in the root directory by copying the example:
+
 ```bash
 cp .env.example .env
 ```
+
 Fill in the variables with your Firebase credentials:
+
 ```env
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-VITE_FIREBASE_APP_ID=your_app_id
+PUBLIC_FIREBASE_API_KEY=your_api_key
+PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+PUBLIC_FIREBASE_APP_ID=your_app_id
 ```
 
 ### 4. Run Development Server
+
 ```bash
 npm run dev -- --open
 ```
 
 ## 🛡️ Security
+
 - **API Keys**: Ensure your Firebase API key is strictly locked to your domain using Google Cloud Console (API & Services > Credentials > Application Restrictions) before deploying.
 - **Content Security Policy (CSP)**: DevHub implements a strict `meta` CSP in `src/app.html` to prevent XSS attacks when deployed.
 
 ## 📦 Deployment
+
 DevHub is powered by SvelteKit's `adapter-auto` and can be instantly deployed for free to:
+
 - **[Vercel](https://vercel.com/)** (Highly Recommended: Zero config needed)
 - **Firebase Hosting** (via `firebase init hosting`)
 
 ---
+
 <p align="center">Crafted with ❤️ by Hendika</p>
