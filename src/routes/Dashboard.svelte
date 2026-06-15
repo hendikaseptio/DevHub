@@ -1,5 +1,5 @@
 <script>
-	import { user } from '$lib/stores';
+	import { user, theme, accentColor } from '$lib/stores';
 	import {
 		auth,
 		signOut,
@@ -26,7 +26,23 @@
 	let isModalOpen = $state(false);
 	/** @type {any} */
 	let currentProject = $state(null);
+	/** @type {string | null} */
 	let indexErrorLink = $state(null);
+
+	let searchQuery = $state('');
+	let filterStatus = $state('All');
+
+	let filteredProjects = $derived(
+		projects.filter((p) => {
+			const matchesSearch =
+				p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+				(p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()));
+			const matchesStatus = filterStatus === 'All' || p.status === filterStatus;
+			return matchesSearch && matchesStatus;
+		})
+	);
+
+	const colors = ['indigo', 'emerald', 'rose', 'amber'];
 
 	onMount(() => {
 		if ($user) {
@@ -127,14 +143,14 @@
 	};
 </script>
 
-<div class="min-h-screen bg-gray-50 flex flex-col">
+<div class="min-h-screen flex flex-col relative z-10">
 	<!-- Navbar -->
-	<nav class="bg-white border-b border-gray-200 sticky top-0 z-30">
+	<nav class="glass-panel sticky top-0 z-30 border-t-0 border-x-0">
 		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 			<div class="flex justify-between h-16 items-center">
 				<div class="flex items-center gap-3">
 					<div
-						class="w-10 h-10 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-xl shadow-md flex items-center justify-center"
+						class="w-10 h-10 bg-gradient-to-tr from-accent-500 to-accent-600 rounded-xl shadow-md flex items-center justify-center border border-white/20"
 					>
 						<svg
 							class="w-6 h-6 text-white"
@@ -152,26 +168,58 @@
 						</svg>
 					</div>
 					<span
-						class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600"
+						class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-accent-600 to-accent-400"
 						>DevHub</span
 					>
 				</div>
-				<div class="flex items-center gap-4">
-					<div class="hidden sm:flex items-center gap-2">
+
+				<div class="flex items-center gap-6">
+					<!-- Theme & Accent Controls -->
+					<div
+						class="hidden md:flex items-center gap-4 border-r border-gray-200 dark:border-gray-700 pr-6"
+					>
+						<div
+							class="flex items-center bg-gray-100/50 dark:bg-gray-800/50 rounded-lg p-1 border border-gray-200 dark:border-gray-700"
+						>
+							{#each colors as color (color)}
+								<button
+									onclick={() => ($accentColor = color)}
+									aria-label={`Set accent color to ${color}`}
+									class={`w-6 h-6 rounded-md m-0.5 transition-transform ${$accentColor === color ? 'scale-110 shadow-sm ring-2 ring-offset-1 ring-offset-white dark:ring-offset-gray-900 ring-gray-400 dark:ring-gray-500' : 'hover:scale-105 opacity-80'}`}
+									style={`background-color: var(--color-${color}-500)`}
+								></button>
+							{/each}
+						</div>
+
+						<select
+							bind:value={$theme}
+							class="text-xs font-medium bg-gray-100/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg focus:ring-accent-500 focus:border-accent-500 block py-1.5 px-3 outline-none"
+						>
+							<option value="light">Light</option>
+							<option value="dark">Dark</option>
+							<option value="system">System</option>
+						</select>
+					</div>
+
+					<div class="hidden sm:flex items-center gap-3">
 						<img
 							src={$user?.photoURL}
 							alt={$user?.displayName}
-							class="w-8 h-8 rounded-full border border-gray-200"
+							class="w-9 h-9 rounded-full border-2 border-accent-100 dark:border-accent-900"
 							referrerpolicy="no-referrer"
 						/>
-						<span class="text-sm font-medium text-gray-700">{$user?.displayName}</span>
+						<div class="flex flex-col">
+							<span class="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight"
+								>{$user?.displayName}</span
+							>
+							<button
+								onclick={handleSignOut}
+								class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-left"
+							>
+								Sign Out
+							</button>
+						</div>
 					</div>
-					<button
-						onclick={handleSignOut}
-						class="text-sm font-medium text-gray-500 hover:text-red-600 transition-colors"
-					>
-						Sign Out
-					</button>
 				</div>
 			</div>
 		</div>
@@ -179,14 +227,40 @@
 
 	<!-- Main Content -->
 	<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+		<!-- Mobile Controls (visible only on small screens) -->
+		<div class="md:hidden flex justify-between items-center mb-6 glass p-3 rounded-xl">
+			<div class="flex items-center gap-2">
+				{#each colors as color (color)}
+					<button
+						onclick={() => ($accentColor = color)}
+						aria-label={`Set accent color to ${color}`}
+						class={`w-5 h-5 rounded-full transition-transform ${$accentColor === color ? 'scale-125 ring-2 ring-offset-1 ring-offset-white dark:ring-offset-gray-900 ring-gray-400' : 'opacity-80'}`}
+						style={`background-color: var(--color-${color}-500)`}
+					></button>
+				{/each}
+			</div>
+			<select
+				bind:value={$theme}
+				class="text-xs bg-transparent border-none text-gray-700 dark:text-gray-300 outline-none"
+			>
+				<option value="light">Light</option>
+				<option value="dark">Dark</option>
+				<option value="system">Auto</option>
+			</select>
+		</div>
+
 		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
 			<div>
-				<h1 class="text-3xl font-bold text-gray-900">Your Projects</h1>
-				<p class="text-gray-500 mt-1">Manage and track the progress of all your applications.</p>
+				<h1 class="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+					Your Projects
+				</h1>
+				<p class="text-gray-500 dark:text-gray-400 mt-2 text-lg">
+					Manage and track the progress of all your applications.
+				</p>
 			</div>
 			<button
 				onclick={openNewProjectModal}
-				class="inline-flex items-center justify-center px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-lg shadow hover:bg-indigo-700 hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 w-full sm:w-auto"
+				class="inline-flex items-center justify-center px-6 py-3 bg-accent-600 text-white font-semibold rounded-xl shadow-lg hover:bg-accent-500 hover:shadow-xl hover:-translate-y-0.5 transition-all focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 w-full sm:w-auto"
 			>
 				<svg
 					class="w-5 h-5 mr-2"
@@ -201,21 +275,83 @@
 			</button>
 		</div>
 
+		<!-- Search & Filter Bar -->
+		{#if projects.length > 0 || searchQuery !== '' || filterStatus !== 'All'}
+			<div class="flex flex-col sm:flex-row gap-4 mb-8 glass p-2 rounded-2xl">
+				<!-- Search -->
+				<div class="relative flex-1">
+					<div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+						<svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+							><path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+							></path></svg
+						>
+					</div>
+					<input
+						type="text"
+						bind:value={searchQuery}
+						placeholder="Search by project name or category..."
+						class="w-full pl-11 pr-4 py-3 bg-transparent border-none text-gray-900 dark:text-white placeholder-gray-400 focus:ring-0 outline-none transition-all"
+					/>
+				</div>
+
+				<!-- Divider -->
+				<div class="hidden sm:block w-px bg-gray-200 dark:bg-gray-700 my-2"></div>
+
+				<!-- Filter Status -->
+				<div class="sm:w-56 relative flex items-center">
+					<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+						<svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+							><path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+							></path></svg
+						>
+					</div>
+					<select
+						bind:value={filterStatus}
+						class="w-full pl-10 pr-10 py-3 bg-transparent border-none text-gray-700 dark:text-gray-300 font-medium appearance-none focus:ring-0 outline-none cursor-pointer"
+					>
+						<option value="All">All Statuses</option>
+						<option value="In Development">In Development</option>
+						<option value="Completed">Completed</option>
+					</select>
+					<div
+						class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500"
+					>
+						<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+							><path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M19 9l-7 7-7-7"
+							></path></svg
+						>
+					</div>
+				</div>
+			</div>
+		{/if}
+
 		{#if loading}
 			<div class="flex justify-center py-20">
 				<div
-					class="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-indigo-600"
+					class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-600"
 				></div>
 			</div>
 		{:else if indexErrorLink}
 			<div
-				class="bg-red-50 rounded-2xl border border-red-100 p-8 text-center max-w-2xl mx-auto mt-10"
+				class="glass-panel rounded-2xl p-8 text-center max-w-2xl mx-auto mt-10 border-red-200 dark:border-red-900/50"
 			>
 				<div
-					class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"
+					class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4"
 				>
 					<svg
-						class="w-8 h-8 text-red-500"
+						class="w-8 h-8 text-red-500 dark:text-red-400"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -228,27 +364,33 @@
 						></path></svg
 					>
 				</div>
-				<h3 class="text-xl font-bold text-red-800 mb-2">Firestore Index Required</h3>
-				<p class="text-red-600 mb-6">
+				<h3 class="text-xl font-bold text-red-800 dark:text-red-300 mb-2">
+					Firestore Index Required
+				</h3>
+				<p class="text-red-600 dark:text-red-400 mb-6">
 					You need to create a composite index in Firestore for the projects to load and sort
 					properly.
 				</p>
+				<!-- eslint-disable svelte/no-navigation-without-resolve -->
 				<a
 					href={indexErrorLink}
 					target="_blank"
 					rel="noopener noreferrer"
-					class="inline-block bg-red-600 text-white font-medium px-6 py-3 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+					class="inline-block bg-red-600 text-white font-medium px-6 py-3 rounded-xl hover:bg-red-700 transition-colors shadow-lg"
 				>
 					Click here to build the Index automatically
 				</a>
+				<!-- eslint-enable svelte/no-navigation-without-resolve -->
 			</div>
 		{:else if projects.length === 0}
-			<div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-12 text-center">
+			<div
+				class="glass-panel rounded-3xl p-16 text-center max-w-2xl mx-auto mt-8 border-dashed border-2 border-accent-200 dark:border-accent-800"
+			>
 				<div
-					class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6"
+					class="w-24 h-24 bg-accent-50 dark:bg-accent-900/30 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner"
 				>
 					<svg
-						class="w-12 h-12 text-indigo-300"
+						class="w-12 h-12 text-accent-400 dark:text-accent-500"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -261,31 +403,88 @@
 						></path></svg
 					>
 				</div>
-				<h3 class="text-xl font-semibold text-gray-900 mb-2">No projects yet</h3>
-				<p class="text-gray-500 mb-6 max-w-sm mx-auto">
+				<h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">No projects yet</h3>
+				<p class="text-gray-500 dark:text-gray-400 mb-8 max-w-md mx-auto text-lg">
 					Get started by creating your first project to track its progress, bugs, and repository.
 				</p>
 				<button
 					onclick={openNewProjectModal}
-					class="text-indigo-600 font-medium hover:text-indigo-700"
+					class="text-accent-600 dark:text-accent-400 font-bold hover:text-accent-500 flex items-center justify-center gap-2 mx-auto"
 				>
-					+ Create your first project
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+						><path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 4v16m8-8H4"
+						></path></svg
+					>
+					Create your first project
+				</button>
+			</div>
+		{:else if filteredProjects.length === 0}
+			<div
+				class="glass-panel rounded-3xl p-16 text-center max-w-2xl mx-auto mt-8 border-dashed border-2 border-gray-200 dark:border-gray-800"
+			>
+				<div
+					class="w-20 h-20 bg-gray-100 dark:bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner"
+				>
+					<svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+						><path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+						></path></svg
+					>
+				</div>
+				<h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">No matches found</h3>
+				<p class="text-gray-500 dark:text-gray-400 mb-6">
+					We couldn't find any projects matching your search criteria.
+				</p>
+				<button
+					onclick={() => {
+						searchQuery = '';
+						filterStatus = 'All';
+					}}
+					class="text-accent-600 dark:text-accent-400 font-bold hover:underline"
+				>
+					Clear all filters
 				</button>
 			</div>
 		{:else}
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-				{#each projects as project (project.id)}
-					<div
-						class="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow group flex flex-col overflow-hidden"
-					>
+				{#each filteredProjects as project (project.id)}
+					<div class="glass-card rounded-2xl overflow-hidden flex flex-col group relative">
+						<!-- Decorative gradient blob -->
+						<div
+							class="absolute -top-10 -right-10 w-32 h-32 bg-accent-500/10 dark:bg-accent-500/20 blur-2xl rounded-full pointer-events-none"
+						></div>
+
 						<!-- Card Header -->
-						<div class="p-6 border-b border-gray-50 flex flex-col gap-3">
+						<div
+							class="p-6 border-b border-gray-100/50 dark:border-gray-700/50 flex flex-col gap-3 relative z-10"
+						>
 							<div class="flex justify-between items-start gap-4">
-								<h3 class="text-lg font-bold text-gray-900 line-clamp-1" title={project.name}>
-									{project.name}
-								</h3>
+								<div class="flex flex-col">
+									<h3
+										class="text-xl font-bold text-gray-900 dark:text-white line-clamp-1"
+										title={project.name}
+									>
+										{project.name}
+									</h3>
+									{#if project.category}
+										<span class="text-xs font-medium text-accent-600 dark:text-accent-400 mt-0.5">
+											{project.category}
+										</span>
+									{/if}
+								</div>
 								<span
-									class={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${project.status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}
+									class={`inline-flex px-3 py-1 text-[10px] uppercase tracking-wider font-bold rounded-lg whitespace-nowrap shadow-sm ${
+										project.status === 'Completed'
+											? 'bg-emerald-100/80 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30'
+											: 'bg-accent-100/80 text-accent-800 dark:bg-accent-500/20 dark:text-accent-300 border border-accent-200 dark:border-accent-500/30'
+									}`}
 								>
 									{project.status || 'In Development'}
 								</span>
@@ -296,7 +495,7 @@
 									href={project.repo.startsWith('http') ? project.repo : `https://${project.repo}`}
 									target="_blank"
 									rel="noopener noreferrer"
-									class="text-sm text-gray-500 hover:text-indigo-600 flex items-center gap-1.5 transition-colors w-fit"
+									class="text-sm text-gray-500 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400 flex items-center gap-1.5 transition-colors w-fit bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50"
 								>
 									<svg
 										class="w-4 h-4"
@@ -313,7 +512,9 @@
 								</a>
 								<!-- eslint-enable svelte/no-navigation-without-resolve -->
 							{:else}
-								<span class="text-sm text-gray-400 italic flex items-center gap-1.5">
+								<span
+									class="text-sm text-gray-400 dark:text-gray-500 italic flex items-center gap-1.5 px-2 py-1"
+								>
 									<svg
 										class="w-4 h-4"
 										fill="none"
@@ -333,20 +534,34 @@
 						</div>
 
 						<!-- Card Body -->
-						<div class="p-6 flex-1 flex flex-col gap-4 text-sm bg-gray-50/50">
+						<div
+							class="p-6 flex-1 flex flex-col gap-5 text-sm bg-gray-50/30 dark:bg-gray-800/20 relative z-10"
+						>
 							<div>
-								<span class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block"
-									>Progress Notes</span
+								<div class="flex items-center gap-2 mb-2">
+									<div class="w-1.5 h-1.5 rounded-full bg-accent-400"></div>
+									<span
+										class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+										>Progress Notes</span
+									>
+								</div>
+								<p
+									class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap line-clamp-3 leading-relaxed"
 								>
-								<p class="text-gray-700 whitespace-pre-wrap line-clamp-3">
 									{project.progressNotes || 'No progress notes yet.'}
 								</p>
 							</div>
 							<div>
-								<span class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1 block"
-									>Bug Notes</span
+								<div class="flex items-center gap-2 mb-2">
+									<div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+									<span
+										class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest"
+										>Bug Notes</span
+									>
+								</div>
+								<p
+									class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap line-clamp-3 leading-relaxed"
 								>
-								<p class="text-gray-700 whitespace-pre-wrap line-clamp-3">
 									{project.bugNotes || 'No bugs reported.'}
 								</p>
 							</div>
@@ -354,17 +569,17 @@
 
 						<!-- Card Footer -->
 						<div
-							class="px-6 py-4 border-t border-gray-100 flex justify-end gap-2 bg-white mt-auto opacity-0 group-hover:opacity-100 transition-opacity"
+							class="px-6 py-4 border-t border-gray-100/50 dark:border-gray-700/50 flex justify-end gap-2 bg-white/50 dark:bg-gray-800/50 mt-auto opacity-0 group-hover:opacity-100 transition-all duration-300 relative z-10 translate-y-2 group-hover:translate-y-0 backdrop-blur-md"
 						>
 							<button
 								onclick={() => openEditProjectModal(project)}
-								class="px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+								class="px-4 py-2 text-sm font-bold text-accent-700 dark:text-accent-300 bg-accent-50 dark:bg-accent-900/30 hover:bg-accent-100 dark:hover:bg-accent-900/50 rounded-lg transition-colors border border-accent-100 dark:border-accent-800/50"
 							>
 								Edit
 							</button>
 							<button
 								onclick={() => deleteProject(project.id)}
-								class="px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
+								class="px-4 py-2 text-sm font-bold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-lg transition-colors border border-red-100 dark:border-red-800/50"
 							>
 								Delete
 							</button>

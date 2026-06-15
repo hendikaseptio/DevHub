@@ -1,3 +1,98 @@
 @import 'tailwindcss';
 @plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+	--color-accent-50: var(--accent-50);
+	--color-accent-100: var(--accent-100);
+	--color-accent-200: var(--accent-200);
+	--color-accent-300: var(--accent-300);
+	--color-accent-400: var(--accent-400);
+	--color-accent-500: var(--accent-500);
+	--color-accent-600: var(--accent-600);
+	--color-accent-700: var(--accent-700);
+	--color-accent-800: var(--accent-800);
+	--color-accent-900: var(--accent-900);
+	--color-accent-950: var(--accent-950);
+}
+
+@layer base {
+	:root {
+		--accent-50: var(--color-indigo-50);
+		--accent-100: var(--color-indigo-100);
+		--accent-200: var(--color-indigo-200);
+		--accent-300: var(--color-indigo-300);
+		--accent-400: var(--color-indigo-400);
+		--accent-500: var(--color-indigo-500);
+		--accent-600: var(--color-indigo-600);
+		--accent-700: var(--color-indigo-700);
+		--accent-800: var(--color-indigo-800);
+		--accent-900: var(--color-indigo-900);
+		--accent-950: var(--color-indigo-950);
+	}
+
+	:root[data-accent='emerald'] {
+		--accent-50: var(--color-emerald-50);
+		--accent-100: var(--color-emerald-100);
+		--accent-200: var(--color-emerald-200);
+		--accent-300: var(--color-emerald-300);
+		--accent-400: var(--color-emerald-400);
+		--accent-500: var(--color-emerald-500);
+		--accent-600: var(--color-emerald-600);
+		--accent-700: var(--color-emerald-700);
+		--accent-800: var(--color-emerald-800);
+		--accent-900: var(--color-emerald-900);
+		--accent-950: var(--color-emerald-950);
+	}
+
+	:root[data-accent='rose'] {
+		--accent-50: var(--color-rose-50);
+		--accent-100: var(--color-rose-100);
+		--accent-200: var(--color-rose-200);
+		--accent-300: var(--color-rose-300);
+		--accent-400: var(--color-rose-400);
+		--accent-500: var(--color-rose-500);
+		--accent-600: var(--color-rose-600);
+		--accent-700: var(--color-rose-700);
+		--accent-800: var(--color-rose-800);
+		--accent-900: var(--color-rose-900);
+		--accent-950: var(--color-rose-950);
+	}
+
+	:root[data-accent='amber'] {
+		--accent-50: var(--color-amber-50);
+		--accent-100: var(--color-amber-100);
+		--accent-200: var(--color-amber-200);
+		--accent-300: var(--color-amber-300);
+		--accent-400: var(--color-amber-400);
+		--accent-500: var(--color-amber-500);
+		--accent-600: var(--color-amber-600);
+		--accent-700: var(--color-amber-700);
+		--accent-800: var(--color-amber-800);
+		--accent-900: var(--color-amber-900);
+		--accent-950: var(--color-amber-950);
+	}
+}
+
+@utility glass {
+	@apply border border-white/40 bg-white/70 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-gray-900/70;
+}
+
+@utility glass-panel {
+	@apply border border-white/30 bg-white/60 shadow-lg backdrop-blur-md dark:border-white/10 dark:bg-gray-800/60;
+}
+
+@utility glass-card {
+	@apply border border-white/20 bg-white/40 shadow-md backdrop-blur-sm transition-all hover:-translate-y-1 hover:shadow-lg dark:border-white/5 dark:bg-gray-800/40;
+}
+
+body {
+	@apply bg-gray-50 text-gray-900 antialiased transition-colors duration-300 dark:bg-gray-950 dark:text-gray-100;
+	/* subtle background texture / pattern for glassmorphism to look good */
+	background-image:
+		radial-gradient(at 0% 0%, rgba(var(--color-accent-500) / 0.15) 0px, transparent 50%),
+		radial-gradient(at 100% 100%, rgba(var(--color-accent-500) / 0.15) 0px, transparent 50%);
+	background-attachment: fixed;
+}

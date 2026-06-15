@@ -20,18 +20,19 @@
 {#if $user}
 	<Dashboard />
 {:else}
-	<div
-		class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-4"
-	>
+	<div class="min-h-screen flex items-center justify-center p-4">
 		<div
-			class="max-w-md w-full bg-white/10 backdrop-blur-lg rounded-2xl shadow-2xl p-8 border border-white/20 text-center"
+			class="max-w-md w-full glass p-8 rounded-3xl text-center border-t-2 border-t-white/50 dark:border-t-white/10"
 		>
-			<div class="mb-8">
+			<div class="mb-8 relative">
 				<div
-					class="w-20 h-20 bg-white rounded-2xl shadow-lg mx-auto flex items-center justify-center mb-6 transform -rotate-6"
+					class="absolute -inset-4 bg-accent-500/20 dark:bg-accent-500/10 blur-xl rounded-full z-0"
+				></div>
+				<div
+					class="w-24 h-24 bg-white dark:bg-gray-800 rounded-3xl shadow-xl mx-auto flex items-center justify-center mb-6 transform -rotate-6 relative z-10 border border-gray-100 dark:border-gray-700"
 				>
 					<svg
-						class="w-12 h-12 text-indigo-600"
+						class="w-12 h-12 text-accent-600 dark:text-accent-400"
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -45,13 +46,19 @@
 						></path>
 					</svg>
 				</div>
-				<h1 class="text-4xl font-extrabold text-white mb-2 drop-shadow-md">DevHub</h1>
-				<p class="text-indigo-100 text-lg">Monitor all your app projects in one place.</p>
+				<h1
+					class="text-5xl font-extrabold text-gray-900 dark:text-white mb-3 tracking-tight relative z-10"
+				>
+					DevHub
+				</h1>
+				<p class="text-gray-600 dark:text-gray-300 text-lg relative z-10">
+					Monitor all your app projects in one beautiful place.
+				</p>
 			</div>
 
 			<button
 				onclick={handleLogin}
-				class="w-full flex items-center justify-center gap-3 bg-white text-gray-800 font-bold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
+				class="w-full flex items-center justify-center gap-3 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 font-bold py-4 px-6 rounded-2xl shadow-md border border-gray-100 dark:border-gray-700 hover:shadow-lg hover:-translate-y-1 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300"
 			>
 				<svg class="w-6 h-6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
 					<path
