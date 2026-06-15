@@ -31,6 +31,7 @@
 
 	let searchQuery = $state('');
 	let filterStatus = $state('All');
+	let viewMode = $state('card');
 
 	let filteredProjects = $derived(
 		projects.filter((p) => {
@@ -383,6 +384,44 @@
 						>
 					</div>
 				</div>
+
+				<!-- View Toggle -->
+				<div
+					class="flex items-center gap-1 bg-white/30 dark:bg-gray-800/30 p-1 rounded-xl border border-gray-200 dark:border-gray-700 ml-auto w-full sm:w-auto justify-center"
+				>
+					<button
+						onclick={() => (viewMode = 'card')}
+						class="p-2 rounded-lg transition-colors {viewMode === 'card'
+							? 'bg-white dark:bg-gray-700 shadow-sm text-accent-600 dark:text-accent-400'
+							: 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}"
+						title="Card View"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+							><path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+							></path></svg
+						>
+					</button>
+					<button
+						onclick={() => (viewMode = 'list')}
+						class="p-2 rounded-lg transition-colors {viewMode === 'list'
+							? 'bg-white dark:bg-gray-700 shadow-sm text-accent-600 dark:text-accent-400'
+							: 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}"
+						title="List View"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+							><path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M4 6h16M4 12h16M4 18h16"
+							></path></svg
+						>
+					</button>
+				</div>
 			</div>
 		{/if}
 
@@ -502,9 +541,17 @@
 				</button>
 			</div>
 		{:else}
-			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+			<div
+				class={viewMode === 'card'
+					? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+					: 'flex flex-col gap-4'}
+			>
 				{#each filteredProjects as project (project.id)}
-					<div class="glass-card rounded-2xl overflow-hidden flex flex-col group relative">
+					<div
+						class="glass-card rounded-2xl overflow-hidden flex group relative {viewMode === 'list'
+							? 'flex-col md:flex-row'
+							: 'flex-col'}"
+					>
 						<!-- Decorative gradient blob -->
 						<div
 							class="absolute -top-10 -right-10 w-32 h-32 bg-accent-500/10 dark:bg-accent-500/20 blur-2xl rounded-full pointer-events-none"
@@ -512,7 +559,10 @@
 
 						<!-- Card Header -->
 						<div
-							class="p-6 border-b border-gray-100/50 dark:border-gray-700/50 flex flex-col gap-3 relative z-10"
+							class="p-6 flex flex-col gap-3 relative z-10 border-gray-100/50 dark:border-gray-700/50 {viewMode ===
+							'list'
+								? 'md:w-2/5 lg:w-1/3 border-b md:border-b-0 md:border-r'
+								: 'border-b'}"
 						>
 							<div class="flex justify-between items-start gap-4">
 								<div class="flex flex-col">
@@ -686,19 +736,28 @@
 							{/if}
 						</div>
 
-						<!-- Card Footer -->
+						<!-- Card Footer / Actions (Now visible always, integrated into body or right edge) -->
 						<div
-							class="px-6 py-4 border-t border-gray-100/50 dark:border-gray-700/50 flex justify-end gap-2 bg-white/50 dark:bg-gray-800/50 mt-auto opacity-0 group-hover:opacity-100 transition-all duration-300 relative z-10 translate-y-2 group-hover:translate-y-0 backdrop-blur-md"
+							class="px-6 py-4 flex items-center justify-end gap-2 bg-white/50 dark:bg-gray-800/50 transition-all duration-300 relative z-10 backdrop-blur-md border-gray-100/50 dark:border-gray-700/50 {viewMode ===
+							'list'
+								? 'border-t md:border-t-0 md:border-l md:flex-col md:w-32 lg:w-40 justify-center'
+								: 'border-t mt-auto'}"
 						>
 							<button
 								onclick={() => openEditProjectModal(project)}
-								class="px-4 py-2 text-sm font-bold text-accent-700 dark:text-accent-300 bg-accent-50 dark:bg-accent-900/30 hover:bg-accent-100 dark:hover:bg-accent-900/50 rounded-lg transition-colors border border-accent-100 dark:border-accent-800/50"
+								class="px-4 py-2 text-sm font-bold text-accent-700 dark:text-accent-300 bg-accent-50 dark:bg-accent-900/30 hover:bg-accent-100 dark:hover:bg-accent-900/50 rounded-lg transition-colors border border-accent-100 dark:border-accent-800/50 {viewMode ===
+								'list'
+									? 'w-full'
+									: ''}"
 							>
 								Edit
 							</button>
 							<button
 								onclick={() => deleteProject(project.id)}
-								class="px-4 py-2 text-sm font-bold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-lg transition-colors border border-red-100 dark:border-red-800/50"
+								class="px-4 py-2 text-sm font-bold text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-lg transition-colors border border-red-100 dark:border-red-800/50 {viewMode ===
+								'list'
+									? 'w-full'
+									: ''}"
 							>
 								Delete
 							</button>
