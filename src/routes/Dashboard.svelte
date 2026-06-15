@@ -16,6 +16,7 @@
 	} from '$lib/firebase';
 	import { onMount, onDestroy } from 'svelte';
 	import ProjectModal from './ProjectModal.svelte';
+	import SettingsModal from './SettingsModal.svelte';
 
 	/** @type {any[]} */
 	let projects = $state([]);
@@ -24,6 +25,7 @@
 	let unsubscribe;
 
 	let isModalOpen = $state(false);
+	let isSettingsOpen = $state(false);
 	/** @type {any} */
 	let currentProject = $state(null);
 	/** @type {string | null} */
@@ -218,23 +220,24 @@
 					</div>
 
 					<div class="hidden sm:flex items-center gap-3">
-						<img
-							src={$user?.photoURL}
-							alt={$user?.displayName}
-							class="w-9 h-9 rounded-full border-2 border-accent-100 dark:border-accent-900"
-							referrerpolicy="no-referrer"
-						/>
-						<div class="flex flex-col">
-							<span class="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight"
-								>{$user?.displayName}</span
-							>
-							<button
-								onclick={handleSignOut}
-								class="text-xs font-medium text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-left"
-							>
-								Sign Out
-							</button>
-						</div>
+						<button
+							onclick={() => (isSettingsOpen = true)}
+							class="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200/50 dark:border-gray-700/50 transition-colors focus:ring-2 focus:ring-accent-500 outline-none group"
+						>
+							<img
+								src={$user?.photoURL}
+								alt={$user?.displayName}
+								class="w-9 h-9 rounded-full border-2 border-accent-100 dark:border-accent-900 group-hover:scale-105 transition-transform"
+								referrerpolicy="no-referrer"
+							/>
+							<div class="flex flex-col text-left">
+								<span
+									class="text-sm font-bold text-gray-900 dark:text-gray-100 leading-tight truncate max-w-[120px]"
+									>{$user?.displayName}</span
+								>
+								<span class="text-xs font-medium text-gray-500 dark:text-gray-400">Settings</span>
+							</div>
+						</button>
 					</div>
 				</div>
 			</div>
@@ -245,6 +248,24 @@
 	<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
 		<!-- Mobile Controls (visible only on small screens) -->
 		<div class="md:hidden flex justify-between items-center mb-6 glass p-3 rounded-xl">
+			<button
+				onclick={() => (isSettingsOpen = true)}
+				class="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200/50 dark:border-gray-700/50 transition-colors focus:ring-2 focus:ring-accent-500 outline-none group"
+			>
+				<img
+					src={$user?.photoURL}
+					alt={$user?.displayName}
+					class="w-8 h-8 rounded-full border-2 border-accent-100 dark:border-accent-900 group-hover:scale-105 transition-transform"
+					referrerpolicy="no-referrer"
+				/>
+				<div class="flex flex-col text-left">
+					<span
+						class="text-xs font-bold text-gray-900 dark:text-gray-100 leading-tight truncate max-w-[100px]"
+						>{$user?.displayName}</span
+					>
+				</div>
+			</button>
+
 			<div class="flex items-center gap-2">
 				{#each colors as color (color)}
 					<button
@@ -656,6 +677,17 @@
 									</span>
 								{/if}
 							</div>
+							{#if project.technologies && project.technologies.length > 0}
+								<div class="flex flex-wrap gap-1.5 mt-2">
+									{#each project.technologies as tech (tech)}
+										<span
+											class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800/80 text-gray-600 dark:text-gray-300 border border-gray-200/50 dark:border-gray-700/50"
+										>
+											{tech}
+										</span>
+									{/each}
+								</div>
+							{/if}
 						</div>
 
 						<!-- Card Body -->
@@ -771,4 +803,8 @@
 
 {#if isModalOpen}
 	<ProjectModal project={currentProject} onClose={closeModal} onSave={saveProject} />
+{/if}
+
+{#if isSettingsOpen}
+	<SettingsModal user={$user} onClose={() => (isSettingsOpen = false)} onLogout={handleSignOut} />
 {/if}

@@ -10,11 +10,93 @@
 		progressNotes: project?.progressNotes || '',
 		bugNotes: project?.bugNotes || '',
 		status: project?.status || 'In Development',
-		tasks: project?.tasks ? [...project.tasks] : []
+		tasks: project?.tasks ? [...project.tasks] : [],
+		technologies: project?.technologies ? [...project.technologies] : []
 	});
 
 	let newTaskText = $state('');
+	let newTechText = $state('');
 	let isSubmitting = $state(false);
+	let isDetecting = $state(false);
+
+	const addTech = () => {
+		if (newTechText.trim() && !formData.technologies.includes(newTechText.trim())) {
+			formData.technologies = [...formData.technologies, newTechText.trim()];
+			newTechText = '';
+		}
+	};
+
+	/** @param {string} tech */
+	const removeTech = (tech) => {
+		formData.technologies = formData.technologies.filter((t) => t !== tech);
+	};
+
+	const detectTechStack = async () => {
+		if (!formData.repo.includes('github.com')) {
+			alert('Auto-detect currently only works with GitHub URLs.');
+			return;
+		}
+
+		// Extract owner and repo
+		const match = formData.repo.match(/github\.com\/([^/]+)\/([^/]+)/);
+		if (!match) return;
+
+		const owner = match[1];
+		const repo = match[2].replace('.git', '');
+
+		let detected = [...formData.technologies];
+		isDetecting = true;
+
+		try {
+			// 1. Fetch Languages
+			const langRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/languages`);
+			if (langRes.ok) {
+				const langs = await langRes.json();
+				Object.keys(langs).forEach((l) => {
+					if (!detected.includes(l)) detected.push(l);
+				});
+			}
+
+			// 2. Fetch package.json
+			const pkgRes = await fetch(
+				`https://raw.githubusercontent.com/${owner}/${repo}/HEAD/package.json`
+			);
+			if (pkgRes.ok) {
+				const pkg = await pkgRes.json();
+				const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+				const addD = (/** @type {string} */ l) => !detected.includes(l) && detected.push(l);
+				if (deps['svelte']) addD('Svelte');
+				if (deps['@sveltejs/kit']) addD('SvelteKit');
+				if (deps['react']) addD('React');
+				if (deps['vue']) addD('Vue');
+				if (deps['next']) addD('Next.js');
+				if (deps['nuxt']) addD('Nuxt');
+				if (deps['tailwindcss']) addD('Tailwind CSS');
+				if (deps['bootstrap']) addD('Bootstrap');
+				if (deps['typescript']) addD('TypeScript');
+				if (deps['vite']) addD('Vite');
+			}
+
+			// 3. Fetch composer.json
+			const compRes = await fetch(
+				`https://raw.githubusercontent.com/${owner}/${repo}/HEAD/composer.json`
+			);
+			if (compRes.ok) {
+				const comp = await compRes.json();
+				const reqs = { ...(comp.require || {}), ...(comp['require-dev'] || {}) };
+				const addD = (/** @type {string} */ l) => !detected.includes(l) && detected.push(l);
+				if (reqs['laravel/framework']) addD('Laravel');
+				if (reqs['codeigniter4/framework']) addD('CodeIgniter 4');
+			}
+
+			formData.technologies = detected;
+		} catch (e) {
+			console.error('Failed to auto-detect:', e);
+			alert('Failed to auto-detect. The repo might be private or API limit reached.');
+		} finally {
+			isDetecting = false;
+		}
+	};
 
 	const addTask = () => {
 		if (newTaskText.trim()) {
@@ -138,13 +220,83 @@
 					<label for="repo" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1"
 						>Repository Link</label
 					>
-					<input
-						type="url"
-						id="repo"
-						bind:value={formData.repo}
-						placeholder="e.g. https://github.com/username/repo"
-						class="w-full px-4 py-2.5 bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
-					/>
+					<div class="flex gap-2">
+						<input
+							type="url"
+							id="repo"
+							bind:value={formData.repo}
+							placeholder="e.g. https://github.com/username/repo"
+							class="flex-1 px-4 py-2.5 bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 outline-none transition-all"
+						/>
+						<button
+							type="button"
+							onclick={detectTechStack}
+							disabled={isDetecting || !formData.repo}
+							title="Auto-Detect Tech Stack from GitHub"
+							class="px-3 py-2.5 bg-accent-100 text-accent-700 dark:bg-accent-900/30 dark:text-accent-400 rounded-xl hover:bg-accent-200 dark:hover:bg-accent-800/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-accent-200 dark:border-accent-800 flex items-center justify-center min-w-[48px]"
+						>
+							{#if isDetecting}
+								<div
+									class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-accent-600 dark:border-accent-400"
+								></div>
+							{:else}
+								<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+									><path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M13 10V3L4 14h7v7l9-11h-7z"
+									></path></svg
+								>
+							{/if}
+						</button>
+					</div>
+				</div>
+
+				<!-- Tech Stack Field -->
+				<div>
+					<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+						Tech Stack
+					</label>
+					<div class="flex flex-wrap gap-2 mb-2">
+						{#each formData.technologies as tech (tech)}
+							<div
+								class="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-lg text-sm border border-gray-200 dark:border-gray-700"
+							>
+								<span>{tech}</span>
+								<button
+									type="button"
+									onclick={() => removeTech(tech)}
+									class="text-gray-400 hover:text-red-500 transition-colors ml-1 focus:outline-none"
+								>
+									<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+										><path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M6 18L18 6M6 6l12 12"
+										></path></svg
+									>
+								</button>
+							</div>
+						{/each}
+					</div>
+					<div class="flex gap-2">
+						<input
+							type="text"
+							bind:value={newTechText}
+							placeholder="Add technology (e.g. Svelte, Laravel)..."
+							onkeydown={(e) => e.key === 'Enter' && (e.preventDefault(), addTech())}
+							class="flex-1 px-4 py-2.5 bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:text-white placeholder-gray-400 outline-none transition-all"
+						/>
+						<button
+							type="button"
+							onclick={addTech}
+							class="px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 font-bold transition-all"
+						>
+							Add
+						</button>
+					</div>
 				</div>
 
 				<!-- Live URL Field -->
