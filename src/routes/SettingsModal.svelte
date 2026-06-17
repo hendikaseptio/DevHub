@@ -1,5 +1,8 @@
 <script>
+	import { theme, accentColor } from '$lib/stores';
+
 	let { user, onClose, onLogout } = $props();
+	const colors = ['indigo', 'emerald', 'rose', 'amber'];
 
 	const handleClearCache = () => {
 		if (confirm('Are you sure you want to clear cache? This will refresh the page.')) {
@@ -61,8 +64,77 @@
 				</div>
 			</div>
 
+			<!-- Appearance Settings -->
+			<div class="flex flex-col gap-3">
+				<h3
+					class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider pl-2"
+				>
+					Appearance
+				</h3>
+
+				<!-- Theme Toggle -->
+				<div
+					class="flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 rounded-2xl border border-gray-200/50 dark:border-gray-700/50"
+				>
+					<div class="flex items-center gap-3 text-gray-700 dark:text-gray-200 font-bold">
+						<div class="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+								></path>
+							</svg>
+						</div>
+						Theme
+					</div>
+					<button
+						onclick={() =>
+							($theme = $theme === 'dark' ? 'light' : $theme === 'light' ? 'system' : 'dark')}
+						class="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-700 text-sm font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors capitalize min-w-[100px] text-center"
+					>
+						{$theme}
+					</button>
+				</div>
+
+				<!-- Accent Color -->
+				<div
+					class="flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 rounded-2xl border border-gray-200/50 dark:border-gray-700/50"
+				>
+					<div class="flex items-center gap-3 text-gray-700 dark:text-gray-200 font-bold">
+						<div class="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+								></path>
+							</svg>
+						</div>
+						Accent Color
+					</div>
+					<div class="flex items-center gap-1.5">
+						{#each colors as color (color)}
+							<button
+								onclick={() => ($accentColor = color)}
+								aria-label={`Set accent color to ${color}`}
+								class={`w-7 h-7 rounded-full transition-transform ${$accentColor === color ? 'scale-110 shadow-sm ring-2 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 ring-accent-500' : 'hover:scale-110 opacity-80'}`}
+								style={`background-color: var(--color-${color}-500)`}
+							></button>
+						{/each}
+					</div>
+				</div>
+			</div>
+
 			<!-- Actions -->
 			<div class="flex flex-col gap-3">
+				<h3
+					class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider pl-2"
+				>
+					System
+				</h3>
 				<button
 					onclick={handleClearCache}
 					class="flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 transition-colors group"

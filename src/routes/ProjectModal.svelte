@@ -1,4 +1,6 @@
 <script>
+	import { storage, ref, uploadBytes, getDownloadURL } from '$lib/firebase';
+
 	let { project, onClose, onSave } = $props();
 
 	// svelte-ignore state_referenced_locally
@@ -11,8 +13,24 @@
 		bugNotes: project?.bugNotes || '',
 		status: project?.status || 'In Development',
 		tasks: project?.tasks ? [...project.tasks] : [],
-		technologies: project?.technologies ? [...project.technologies] : []
+		technologies: project?.technologies ? [...project.technologies] : [],
+		coverUrl: project?.coverUrl || ''
 	});
+
+	/** @type {File|null} */
+	let coverFile = $state(null);
+	let coverPreview = $state(project?.coverUrl || null);
+	let isUploading = $state(false);
+
+	/** @param {Event} e */
+	const handleFileSelect = (e) => {
+		const target = /** @type {HTMLInputElement} */ (e.target);
+		if (target.files && target.files[0]) {
+			const file = target.files[0];
+			coverFile = file;
+			coverPreview = URL.createObjectURL(file);
+		}
+	};
 
 	let newTaskText = $state('');
 	let newTechText = $state('');
@@ -178,8 +196,27 @@
 		}
 
 		isSubmitting = true;
-		await onSave(formData);
-		isSubmitting = false;
+
+		try {
+			if (coverFile) {
+				isUploading = true;
+				const storageRef = ref(
+					storage,
+					`covers/${Date.now()}_${coverFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+				);
+				const snapshot = await uploadBytes(storageRef, coverFile);
+				formData.coverUrl = await getDownloadURL(snapshot.ref);
+			}
+			await onSave(formData);
+		} catch (error) {
+			console.error('Error saving project:', error);
+			alert(
+				'Failed to save project. If you uploaded an image, make sure Firebase Storage is enabled in your Firebase Console and the security rules allow writing.'
+			);
+		} finally {
+			isSubmitting = false;
+			isUploading = false;
+		}
 	};
 </script>
 
@@ -238,6 +275,50 @@
 				}}
 				class="space-y-5"
 			>
+				<!-- Cover Image -->
+				<div>
+					<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+						Project Cover Image
+					</label>
+					<div
+						class="relative w-full h-32 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-accent-500 transition-colors bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center group cursor-pointer"
+					>
+						{#if coverPreview}
+							<!-- svelte-ignore a11y_missing_attribute -->
+							<img
+								src={coverPreview}
+								class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+							/>
+							<div
+								class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+							>
+								<span class="text-white font-medium text-sm">Change Image</span>
+							</div>
+						{:else}
+							<div
+								class="flex flex-col items-center gap-2 text-gray-400 group-hover:text-accent-500 transition-colors"
+							>
+								<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+									><path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+									></path></svg
+								>
+								<span class="text-sm font-medium">Click to upload cover</span>
+							</div>
+						{/if}
+						<input
+							type="file"
+							accept="image/*"
+							class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+							onchange={handleFileSelect}
+							aria-label="Upload project cover image"
+						/>
+					</div>
+				</div>
+
 				<!-- Name Field -->
 				<div>
 					<label for="name" class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1"
@@ -510,7 +591,12 @@
 				disabled={isSubmitting}
 				class="px-6 py-2.5 text-sm font-bold text-white bg-accent-600 border border-transparent rounded-xl shadow-lg shadow-accent-500/30 hover:bg-accent-700 hover:shadow-xl hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-all flex items-center justify-center min-w-[120px]"
 			>
-				{#if isSubmitting}
+				{#if isUploading}
+					<div class="flex items-center gap-2">
+						<div class="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+						<span>Uploading...</span>
+					</div>
+				{:else if isSubmitting}
 					<div class="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
 				{:else}
 					Save Project

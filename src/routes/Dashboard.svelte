@@ -37,15 +37,53 @@
 	let viewMode = $state('card');
 
 	let filteredProjects = $derived(
-		projects.filter((p) => {
-			const matchesSearch =
-				p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-				(p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()));
-			const matchesStatus = filterStatus === 'All' || p.status === filterStatus;
-			const matchesBugs = filterBugs ? !!p.bugNotes && p.bugNotes.trim().length > 0 : true;
-			return matchesSearch && matchesStatus && matchesBugs;
-		})
+		projects
+			.filter((p) => {
+				const matchesSearch =
+					p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+					(p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()));
+				const matchesStatus = filterStatus === 'All' || p.status === filterStatus;
+				const matchesBugs = filterBugs ? !!p.bugNotes && p.bugNotes.trim().length > 0 : true;
+				return matchesSearch && matchesStatus && matchesBugs;
+			})
+			.sort((a, b) => {
+				if (a.pinned && !b.pinned) return -1;
+				if (!a.pinned && b.pinned) return 1;
+				return 0;
+			})
 	);
+
+	/** @type {string | null} */
+	let copiedId = $state(null);
+
+	/**
+	 * @param {string} text
+	 * @param {string} id
+	 */
+	const copyToClipboard = async (text, id) => {
+		try {
+			await navigator.clipboard.writeText(text);
+			copiedId = id;
+			setTimeout(() => {
+				copiedId = null;
+			}, 2000);
+		} catch (err) {
+			console.error('Failed to copy text: ', err);
+		}
+	};
+
+	/** @param {any} project */
+	const togglePin = async (project) => {
+		try {
+			const projectRef = doc(db, 'projects', project.id);
+			await updateDoc(projectRef, {
+				pinned: !project.pinned,
+				updatedAt: Date.now()
+			});
+		} catch (error) {
+			console.error('Error toggling pin:', error);
+		}
+	};
 
 	const colors = ['indigo', 'emerald', 'rose', 'amber'];
 
@@ -195,33 +233,6 @@
 				</div>
 
 				<div class="flex items-center gap-6">
-					<!-- Theme & Accent Controls -->
-					<div
-						class="hidden md:flex items-center gap-4 border-r border-gray-200 dark:border-gray-700 pr-6"
-					>
-						<div
-							class="flex items-center bg-gray-100/50 dark:bg-gray-800/50 rounded-lg p-1 border border-gray-200 dark:border-gray-700"
-						>
-							{#each colors as color (color)}
-								<button
-									onclick={() => ($accentColor = color)}
-									aria-label={`Set accent color to ${color}`}
-									class={`w-6 h-6 rounded-md m-0.5 transition-transform ${$accentColor === color ? 'scale-110 shadow-sm ring-2 ring-offset-1 ring-offset-white dark:ring-offset-gray-900 ring-gray-400 dark:ring-gray-500' : 'hover:scale-105 opacity-80'}`}
-									style={`background-color: var(--color-${color}-500)`}
-								></button>
-							{/each}
-						</div>
-
-						<select
-							bind:value={$theme}
-							class="text-xs font-medium bg-gray-100/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-lg focus:ring-accent-500 focus:border-accent-500 block py-1.5 px-3 outline-none"
-						>
-							<option value="light">Light</option>
-							<option value="dark">Dark</option>
-							<option value="system">System</option>
-						</select>
-					</div>
-
 					<div class="hidden sm:flex items-center gap-3">
 						<button
 							onclick={() => (isSettingsOpen = true)}
@@ -600,6 +611,26 @@
 							class="absolute -top-10 -right-10 w-32 h-32 bg-accent-500/10 dark:bg-accent-500/20 blur-2xl rounded-full pointer-events-none"
 						></div>
 
+						<!-- Project Cover -->
+						{#if project.coverUrl}
+							<div
+								class="{viewMode === 'list'
+									? 'w-full md:w-56 h-32 md:h-auto border-b md:border-b-0 md:border-r border-gray-100/50 dark:border-gray-700/50'
+									: 'w-full h-48 border-b border-gray-100/50 dark:border-gray-700/50'} flex-shrink-0 overflow-hidden relative z-0 bg-gray-100 dark:bg-gray-800"
+							>
+								<!-- svelte-ignore a11y_missing_attribute -->
+								<img
+									src={project.coverUrl}
+									class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+								/>
+								<div
+									class="absolute inset-0 bg-gradient-to-t {viewMode === 'list'
+										? 'md:bg-gradient-to-r'
+										: ''} from-white/20 dark:from-gray-900/20 to-transparent pointer-events-none"
+								></div>
+							</div>
+						{/if}
+
 						<!-- Card Header -->
 						<div
 							class="p-6 flex flex-col gap-3 relative z-10 border-gray-100/50 dark:border-gray-700/50 {viewMode ===
@@ -621,67 +652,161 @@
 										</span>
 									{/if}
 								</div>
-								<span
-									class={`inline-flex px-3 py-1 text-[10px] uppercase tracking-wider font-bold rounded-lg whitespace-nowrap shadow-sm ${
-										project.status === 'Completed'
-											? 'bg-emerald-100/80 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30'
-											: 'bg-accent-100/80 text-accent-800 dark:bg-accent-500/20 dark:text-accent-300 border border-accent-200 dark:border-accent-500/30'
-									}`}
-								>
-									{project.status || 'In Development'}
-								</span>
-							</div>
-							<div class="flex flex-col gap-1.5 mt-1">
-								{#if project.repo}
-									<!-- eslint-disable svelte/no-navigation-without-resolve -->
-									<a
-										href={project.repo.startsWith('http')
-											? project.repo
-											: `https://${project.repo}`}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="text-sm text-gray-500 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400 flex items-center gap-1.5 transition-colors w-fit bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50"
+								<div class="flex items-center gap-2">
+									<button
+										onclick={() => togglePin(project)}
+										class="p-1.5 rounded-lg transition-colors {project.pinned
+											? 'text-amber-400 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20'
+											: 'text-gray-300 dark:text-gray-600 hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20'}"
+										title={project.pinned ? 'Unpin project' : 'Pin project'}
+										aria-label="Toggle Pin"
 									>
 										<svg
-											class="w-4 h-4 flex-shrink-0"
-											fill="currentColor"
-											viewBox="0 0 24 24"
-											xmlns="http://www.w3.org/2000/svg"
-											><path
-												fill-rule="evenodd"
-												clip-rule="evenodd"
-												d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"
-											></path></svg
-										>
-										<span class="line-clamp-1">{project.repo.replace(/^https?:\/\//, '')}</span>
-									</a>
-									<!-- eslint-enable svelte/no-navigation-without-resolve -->
-								{/if}
-								{#if project.liveUrl}
-									<!-- eslint-disable svelte/no-navigation-without-resolve -->
-									<a
-										href={project.liveUrl.startsWith('http')
-											? project.liveUrl
-											: `https://${project.liveUrl}`}
-										target="_blank"
-										rel="noopener noreferrer"
-										class="text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 transition-colors w-fit bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50"
-									>
-										<svg
-											class="w-4 h-4 flex-shrink-0"
-											fill="none"
+											class="w-4 h-4"
+											fill={project.pinned ? 'currentColor' : 'none'}
 											stroke="currentColor"
 											viewBox="0 0 24 24"
 											><path
 												stroke-linecap="round"
 												stroke-linejoin="round"
 												stroke-width="2"
-												d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+												d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
 											></path></svg
 										>
-										<span class="line-clamp-1">{project.liveUrl.replace(/^https?:\/\//, '')}</span>
-									</a>
-									<!-- eslint-enable svelte/no-navigation-without-resolve -->
+									</button>
+									<span
+										class={`inline-flex px-3 py-1 text-[10px] uppercase tracking-wider font-bold rounded-lg whitespace-nowrap shadow-sm ${
+											project.status === 'Completed'
+												? 'bg-emerald-100/80 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30'
+												: 'bg-accent-100/80 text-accent-800 dark:bg-accent-500/20 dark:text-accent-300 border border-accent-200 dark:border-accent-500/30'
+										}`}
+									>
+										{project.status || 'In Development'}
+									</span>
+								</div>
+							</div>
+							<div class="flex flex-col gap-1.5 mt-1">
+								{#if project.repo}
+									<div class="flex items-center gap-1 group/link">
+										<!-- eslint-disable svelte/no-navigation-without-resolve -->
+										<a
+											href={project.repo.startsWith('http')
+												? project.repo
+												: `https://${project.repo}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-sm text-gray-500 dark:text-gray-400 hover:text-accent-600 dark:hover:text-accent-400 flex items-center gap-1.5 transition-colors w-fit bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50"
+										>
+											<svg
+												class="w-4 h-4 flex-shrink-0"
+												fill="currentColor"
+												viewBox="0 0 24 24"
+												xmlns="http://www.w3.org/2000/svg"
+												><path
+													fill-rule="evenodd"
+													clip-rule="evenodd"
+													d="M12 2C6.477 2 2 6.477 2 12c0 4.42 2.865 8.166 6.839 9.489.5.092.682-.217.682-.482 0-.237-.008-.866-.013-1.7-2.782.603-3.369-1.34-3.369-1.34-.454-1.156-1.11-1.462-1.11-1.462-.908-.62.069-.608.069-.608 1.003.07 1.531 1.03 1.531 1.03.892 1.529 2.341 1.087 2.91.831.092-.646.35-1.086.636-1.336-2.22-.253-4.555-1.11-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.27.098-2.647 0 0 .84-.269 2.75 1.025A9.578 9.578 0 0112 6.836c.85.004 1.705.114 2.504.336 1.909-1.294 2.747-1.025 2.747-1.025.546 1.379.203 2.394.1 2.647.64.699 1.028 1.592 1.028 2.683 0 3.842-2.339 4.687-4.566 4.935.359.309.678.919.678 1.852 0 1.336-.012 2.415-.012 2.743 0 .267.18.578.688.48C19.138 20.161 22 16.416 22 12c0-5.523-4.477-10-10-10z"
+												></path></svg
+											>
+											<span class="line-clamp-1">{project.repo.replace(/^https?:\/\//, '')}</span>
+										</a>
+										<!-- eslint-enable svelte/no-navigation-without-resolve -->
+										<button
+											onclick={(e) => {
+												e.preventDefault();
+												copyToClipboard(project.repo, `repo-${project.id}`);
+											}}
+											class="p-1.5 text-gray-400 opacity-0 group-hover/link:opacity-100 hover:text-accent-600 dark:hover:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-900/30 rounded-md transition-all focus:opacity-100"
+											title="Copy Repository Link"
+											aria-label="Copy Repository Link"
+										>
+											{#if copiedId === `repo-${project.id}`}
+												<svg
+													class="w-4 h-4 text-emerald-500"
+													fill="none"
+													stroke="currentColor"
+													viewBox="0 0 24 24"
+													><path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M5 13l4 4L19 7"
+													></path></svg
+												>
+											{:else}
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+													><path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+													></path></svg
+												>
+											{/if}
+										</button>
+									</div>
+								{/if}
+								{#if project.liveUrl}
+									<div class="flex items-center gap-1 group/link">
+										<!-- eslint-disable svelte/no-navigation-without-resolve -->
+										<a
+											href={project.liveUrl.startsWith('http')
+												? project.liveUrl
+												: `https://${project.liveUrl}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											class="text-sm text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 flex items-center gap-1.5 transition-colors w-fit bg-gray-50 dark:bg-gray-800/50 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700/50"
+										>
+											<svg
+												class="w-4 h-4 flex-shrink-0"
+												fill="none"
+												stroke="currentColor"
+												viewBox="0 0 24 24"
+												><path
+													stroke-linecap="round"
+													stroke-linejoin="round"
+													stroke-width="2"
+													d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"
+												></path></svg
+											>
+											<span class="line-clamp-1">{project.liveUrl.replace(/^https?:\/\//, '')}</span
+											>
+										</a>
+										<!-- eslint-enable svelte/no-navigation-without-resolve -->
+										<button
+											onclick={(e) => {
+												e.preventDefault();
+												copyToClipboard(project.liveUrl, `live-${project.id}`);
+											}}
+											class="p-1.5 text-gray-400 opacity-0 group-hover/link:opacity-100 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-md transition-all focus:opacity-100"
+											title="Copy Live URL"
+											aria-label="Copy Live URL"
+										>
+											{#if copiedId === `live-${project.id}`}
+												<svg
+													class="w-4 h-4 text-emerald-500"
+													fill="none"
+													stroke="currentColor"
+													viewBox="0 0 24 24"
+													><path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M5 13l4 4L19 7"
+													></path></svg
+												>
+											{:else}
+												<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+													><path
+														stroke-linecap="round"
+														stroke-linejoin="round"
+														stroke-width="2"
+														d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+													></path></svg
+												>
+											{/if}
+										</button>
+									</div>
 								{/if}
 								{#if !project.repo && !project.liveUrl}
 									<span

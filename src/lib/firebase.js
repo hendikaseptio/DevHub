@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GithubAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import {
 	getFirestore,
 	collection,
@@ -37,6 +38,7 @@ const firebaseConfig = {
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 const githubProvider = new GithubAuthProvider();
 // Request access to private repos
@@ -50,6 +52,7 @@ export {
 	app,
 	auth,
 	db,
+	storage,
 	githubProvider,
 	GithubAuthProvider,
 	signInWithPopup,
@@ -63,5 +66,8 @@ export {
 	query,
 	where,
 	onSnapshot,
-	orderBy
+	orderBy,
+	ref,
+	uploadBytes,
+	getDownloadURL
 };
