@@ -1,5 +1,5 @@
 <script>
-	import { user, theme, accentColor } from '$lib/stores';
+	import { user } from '$lib/stores';
 	import {
 		auth,
 		signOut,
@@ -85,7 +85,7 @@
 		}
 	};
 
-	const colors = ['indigo', 'emerald', 'rose', 'amber'];
+
 
 	onMount(() => {
 		if ($user) {
@@ -233,7 +233,7 @@
 				</div>
 
 				<div class="flex items-center gap-6">
-					<div class="hidden sm:flex items-center gap-3">
+					<div class="flex items-center gap-3">
 						<button
 							onclick={() => (isSettingsOpen = true)}
 							class="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200/50 dark:border-gray-700/50 transition-colors focus:ring-2 focus:ring-accent-500 outline-none group"
@@ -260,46 +260,6 @@
 
 	<!-- Main Content -->
 	<main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		<!-- Mobile Controls (visible only on small screens) -->
-		<div class="md:hidden flex justify-between items-center mb-6 glass p-3 rounded-xl">
-			<button
-				onclick={() => (isSettingsOpen = true)}
-				class="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-white/50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200/50 dark:border-gray-700/50 transition-colors focus:ring-2 focus:ring-accent-500 outline-none group"
-			>
-				<img
-					src={$user?.photoURL}
-					alt={$user?.displayName}
-					class="w-8 h-8 rounded-full border-2 border-accent-100 dark:border-accent-900 group-hover:scale-105 transition-transform"
-					referrerpolicy="no-referrer"
-				/>
-				<div class="flex flex-col text-left">
-					<span
-						class="text-xs font-bold text-gray-900 dark:text-gray-100 leading-tight truncate max-w-[100px]"
-						>{$user?.displayName}</span
-					>
-				</div>
-			</button>
-
-			<div class="flex items-center gap-2">
-				{#each colors as color (color)}
-					<button
-						onclick={() => ($accentColor = color)}
-						aria-label={`Set accent color to ${color}`}
-						class={`w-5 h-5 rounded-full transition-transform ${$accentColor === color ? 'scale-125 ring-2 ring-offset-1 ring-offset-white dark:ring-offset-gray-900 ring-gray-400' : 'opacity-80'}`}
-						style={`background-color: var(--color-${color}-500)`}
-					></button>
-				{/each}
-			</div>
-			<select
-				bind:value={$theme}
-				class="text-xs bg-transparent border-none text-gray-700 dark:text-gray-300 outline-none"
-			>
-				<option value="light">Light</option>
-				<option value="dark">Dark</option>
-				<option value="system">Auto</option>
-			</select>
-		</div>
-
 		<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
 			<div>
 				<h1 class="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">

@@ -5,7 +5,7 @@ const CACHE = `cache-${version}`;
 
 const ASSETS = [
 	...build, // the app itself
-	...files  // everything in `static`
+	...files // everything in `static`
 ];
 
 self.addEventListener('install', (event) => {
@@ -30,11 +30,21 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-	// ignore POST requests etc
+	// ignore POST, PUT, DELETE, etc.
 	if (event.request.method !== 'GET') return;
 
+	// ignore external requests and Firestore streaming
+	const url = new URL(event.request.url);
+	if (
+		url.origin !== self.location.origin ||
+		url.pathname.includes('/Listen/channel') ||
+		url.hostname.includes('googleapis.com') ||
+		url.hostname.includes('firebase')
+	) {
+		return;
+	}
+
 	async function respond() {
-		const url = new URL(event.request.url);
 		const cache = await caches.open(CACHE);
 
 		// `build`/`files` can always be served from the cache

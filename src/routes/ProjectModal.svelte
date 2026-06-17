@@ -19,18 +19,60 @@
 
 	/** @type {File|null} */
 	let coverFile = $state(null);
+	// svelte-ignore state_referenced_locally
 	let coverPreview = $state(project?.coverUrl || null);
 	let isUploading = $state(false);
+
+	let isDragging = $state(false);
+
+	/** @param {File} file */
+	const processFile = (file) => {
+		if (file && file.type.startsWith('image/')) {
+			coverFile = file;
+			coverPreview = URL.createObjectURL(file);
+			formData.coverUrl = ''; // Clear URL text if file is provided
+		}
+	};
 
 	/** @param {Event} e */
 	const handleFileSelect = (e) => {
 		const target = /** @type {HTMLInputElement} */ (e.target);
 		if (target.files && target.files[0]) {
-			const file = target.files[0];
-			coverFile = file;
-			coverPreview = URL.createObjectURL(file);
+			processFile(target.files[0]);
 		}
 	};
+
+	/** @param {DragEvent} e */
+	const handleDrop = (e) => {
+		e.preventDefault();
+		isDragging = false;
+		if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+			processFile(e.dataTransfer.files[0]);
+		}
+	};
+
+	/** @param {ClipboardEvent} e */
+	const handlePaste = (e) => {
+		if (e.clipboardData && e.clipboardData.files && e.clipboardData.files[0]) {
+			processFile(e.clipboardData.files[0]);
+		} else if (e.clipboardData) {
+			const text = e.clipboardData.getData('text');
+			if (text && text.match(/^https?:\/\/.+\.(jpg|jpeg|png|webp|gif|svg)$/i)) {
+				formData.coverUrl = text;
+				coverPreview = text;
+				coverFile = null;
+			}
+		}
+	};
+
+	$effect(() => {
+		if (!coverFile && formData.coverUrl) {
+			coverPreview = formData.coverUrl;
+		}
+		if (!coverFile && !formData.coverUrl) {
+			coverPreview = null;
+		}
+	});
 
 	let newTaskText = $state('');
 	let newTechText = $state('');
@@ -222,6 +264,9 @@
 
 <div
 	class="fixed inset-0 bg-gray-900/60 dark:bg-gray-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in zoom-in-95 duration-200"
+	role="dialog"
+	tabindex="-1"
+	onpaste={handlePaste}
 >
 	<div class="glass-panel w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] rounded-3xl">
 		<!-- Header -->
@@ -277,11 +322,25 @@
 			>
 				<!-- Cover Image -->
 				<div>
-					<label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
+					<span class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">
 						Project Cover Image
-					</label>
+					</span>
 					<div
-						class="relative w-full h-32 rounded-xl overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-accent-500 transition-colors bg-gray-50 dark:bg-gray-800/50 flex items-center justify-center group cursor-pointer"
+						class="relative w-full h-32 rounded-xl overflow-hidden border-2 border-dashed transition-colors flex items-center justify-center group cursor-pointer {isDragging
+							? 'border-accent-500 bg-accent-50/50 dark:bg-accent-900/20'
+							: 'border-gray-300 dark:border-gray-700 hover:border-accent-500 bg-gray-50 dark:bg-gray-800/50'}"
+						ondragenter={(e) => {
+							e.preventDefault();
+							isDragging = true;
+						}}
+						ondragleave={(e) => {
+							e.preventDefault();
+							isDragging = false;
+						}}
+						ondragover={(e) => e.preventDefault()}
+						ondrop={handleDrop}
+						role="button"
+						tabindex="0"
 					>
 						{#if coverPreview}
 							<!-- svelte-ignore a11y_missing_attribute -->
@@ -292,11 +351,11 @@
 							<div
 								class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
 							>
-								<span class="text-white font-medium text-sm">Change Image</span>
+								<span class="text-white font-medium text-sm">Click or drop to change</span>
 							</div>
 						{:else}
 							<div
-								class="flex flex-col items-center gap-2 text-gray-400 group-hover:text-accent-500 transition-colors"
+								class="flex flex-col items-center gap-2 text-gray-400 group-hover:text-accent-500 transition-colors pointer-events-none"
 							>
 								<svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"
 									><path
@@ -306,7 +365,11 @@
 										d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
 									></path></svg
 								>
-								<span class="text-sm font-medium">Click to upload cover</span>
+								<span class="text-sm font-medium text-center px-4">
+									Click, paste, or drop an image<br /><span class="text-xs opacity-75"
+										>or paste a URL below</span
+									>
+								</span>
 							</div>
 						{/if}
 						<input
@@ -317,6 +380,15 @@
 							aria-label="Upload project cover image"
 						/>
 					</div>
+					<input
+						type="url"
+						placeholder="Or paste an image URL..."
+						bind:value={formData.coverUrl}
+						oninput={() => {
+							coverFile = null;
+						}}
+						class="w-full mt-2 px-4 py-2 bg-white/50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-accent-500 focus:border-accent-500 dark:text-white placeholder-gray-400 outline-none transition-all text-sm"
+					/>
 				</div>
 
 				<!-- Name Field -->
