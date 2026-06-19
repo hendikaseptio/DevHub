@@ -85,8 +85,6 @@
 		}
 	};
 
-
-
 	onMount(() => {
 		if ($user) {
 			const q = query(
@@ -882,6 +880,15 @@
 								? 'border-t md:border-t-0 md:border-l md:flex-col md:w-32 lg:w-40 justify-center'
 								: 'border-t mt-auto'}"
 						>
+							<a
+								href={`/project/${project.id}/diagram`}
+								class="px-4 py-2 text-sm font-bold text-yellow-700 dark:text-yellow-300 bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 rounded-lg transition-colors border border-yellow-100 dark:border-yellow-800/50 {viewMode ===
+								'list'
+									? 'w-full'
+									: ''}"
+							>
+								Diagram
+							</a>
 							<button
 								onclick={() => openEditProjectModal(project)}
 								class="px-4 py-2 text-sm font-bold text-accent-700 dark:text-accent-300 bg-accent-50 dark:bg-accent-900/30 hover:bg-accent-100 dark:hover:bg-accent-900/50 rounded-lg transition-colors border border-accent-100 dark:border-accent-800/50 {viewMode ===

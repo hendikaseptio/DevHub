@@ -24,6 +24,14 @@ service cloud.firestore {
       // Allow delete if the user is logged in and owns the project
       allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
+
+    // Rules for diagrams collection
+    match /diagrams/{diagramId} {
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
     
   }
 }

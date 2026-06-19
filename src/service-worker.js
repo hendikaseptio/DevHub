@@ -39,7 +39,8 @@ self.addEventListener('fetch', (event) => {
 		url.origin !== self.location.origin ||
 		url.pathname.includes('/Listen/channel') ||
 		url.hostname.includes('googleapis.com') ||
-		url.hostname.includes('firebase')
+		url.hostname.includes('firebase') ||
+		url.hostname.includes('mermaid.ai')
 	) {
 		return;
 	}
